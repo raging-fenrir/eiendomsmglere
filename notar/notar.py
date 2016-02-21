@@ -5,7 +5,6 @@ import lxml.html
 import time
 
 class Scrape:
-
     def __init__(self, rootUrl, startPageUrl):
         self.filename = str(time.time())
 
