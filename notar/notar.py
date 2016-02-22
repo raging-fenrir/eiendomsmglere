@@ -1,173 +1,175 @@
-import requests
-import bs4
-import lxml
-import lxml.html
+# -*- coding: utf-8 -*-
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from pyvirtualdisplay import Display
 import time
 
 class Scrape:
-    def __init__(self, rootUrl, startPageUrl):
-        self.filename = str(time.time())
 
-        self.nextPageUrls = [rootUrl+startPageUrl]
-        self.rootUrl = rootUrl
-        page = 0
-        while True:
-            try:
-                soup = self.getSoup(self.nextPageUrls[page])
-                nextPage = soup.select('a.next')[0]['href']
-                print(nextPage)
-                page += 1
-            except:
-                break
-            self.nextPageUrls.append(nextPage)
+    def __init__(self):
+        self.filename   = str(time.time())
+        self.display    = Display(visible=0, size=(800,600))
+        self.rootUrl    = 'http://notar.no'
+        self.startUrl   = 'http://notar.no/Avansert-sok.aspx?pagesize=27&tab=1'
+        self.prospectCounter = 0
 
     def __call__(self):
+        
+        print("Starting virtual display...")
+        self.display.start()
+        print("Starting browser...")
+        self.page = webdriver.Firefox()
+        print("Connecting to page...")
+        self.page.get(self.startUrl)
+        print("Connected")
+        print("Starting the scrape...")
 
-        for i,page in enumerate(self.nextPageUrls):
-            prospectUrls = self.findProspectUrls(page)
-            print("Starting on page {}".format(i))
-            for j,prospectUrl in enumerate(prospectUrls):
-                print("Prospect #{}".format(j))
-                try:
-                    self.prospectScrapeLxml(prospectUrl)
-                except:
+        currentUrl = self.startUrl
+        current = 0
+        total = 1
+
+        while current < total:
+            time.sleep(5)
+            current, total = self.getNumberOfPages()    
+            try:
+                nextPage = self.nextPage() 
+            except:
+                print("Last page")
+                pass
+
+            print("Page {} / {}".format(current,total))
+
+            prospectUrls = self.getProspectUrls()
+
+            self.prospectScrape(prospectUrls)
+            self.page.get(nextPage)
+
+        print("Terminating browser")
+        self.page.quit()
+        print("Terminating virtual display")
+        self.display.stop()
+
+    def nextPage(self):
+
+        nextButton = self.page.find_element(By.LINK_TEXT,'Neste')
+        
+        return nextButton.get_attribute('href')
+
+    def prospectScrape(self, urls):
+        
+        for url in urls:
+
+            prospectDictionary = {}
+            self.prospectCounter += 1
+
+            prospectDictionary['url'] = url
+            print("Prospect #{}".format(self.prospectCounter))
+            self.page.get(url)
+
+            time.sleep(5)
+
+            try:
+                prospectAvtal_Info = self.page.find_elements(By.CLASS_NAME,'avtal_info')
+                for info in prospectAvtal_Info:
+                    for element in info.text.split('\n'):
+                        element = element.split(':')
+                        if element[0] == '':
+                            continue
+                        else:
+                            prospectDictionary[element[0]] = element[1]
+
+            except Exception as e:
+                print(e)
+
+            try:
+                prospectFacilities = self.page.find_elements(By.CLASS_NAME,'lstfacilities')
+                prospectDictionary['Facilities'] = prospectFacilities[0].text.split()
+
+            except Exception as e:
+                print(e)
+
+            try:
+                priceEstimate = self.page.find_element(By.CLASS_NAME,'bigPris').text
+            except Exception as e:
+                print(e)
+
+            try:
+                alll = self.page.find_elements(By.CLASS_NAME,'right')
+                check = False
+                adress = False
+                prospectDictionary['Adress'] = []
+
+                for al in alll:
+                    al = al.text.split('\n')
+                    for a in al:
+                        if "INFORMASJON" in a:
+                            adress = True
+                        elif "PRIS" in a:
+                            adress = False
+                            check = True
+                        elif "FINANSIERING" in a:
+                            check = False
+                            break
+                        if adress:
+                            a = a.split()
+                            if len(a)<2:
+                                pass
+                            else:
+                                key = 'Adress'
+                                value = " ".join(a)
+                                prospectDictionary[key].append(value)
+
+                        if check:
+                            a = a.split()
+                            if len(a) < 3 or a[0] == "kr":
+                                pass
+                            else:
+                                key = a[0].replace(":","")
+                                value = "".join(a[1::])
+                                prospectDictionary[key] = value
+        
+            except Exception as e:
+                print(e)
+
+            self.writeInfo(prospectDictionary)
+
+    def getProspectUrls(self):
+
+        urlElements =\
+                self.page.find_elements(By.XPATH,\
+                "//*[contains(@id,'ctl00_ContentLeft_ComponentLoader2_ctl01___rptProperty_')]")
+        urls = [] 
+        urlCounter = 0
+        for url in urlElements:
+            url = url.get_attribute("href")
+            if "javascript" in url:
+                continue
+            elif urlCounter > 0:
+                if urls[urlCounter -1] == url:
                     continue
-                time.sleep(60)
-            print("Done with page {}".format(i))
+            urls.append(url)
+            urlCounter += 1
+
+        return urls
+
+    def getNumberOfPages(self):
+        
+        pageNumberText = self.page.find_element(By.CLASS_NAME,'textPage').text.split()
+        current, total = int(pageNumberText[1]),int(pageNumberText[3])
+        return current, total
 
     def writeInfo(self,outDict):
 
         outFile = open(self.filename,'a')
 
-        #for outDict in outListDict:
         outFile.write(str(outDict)+'\n')
 
         outFile.close()
-
-    def prospectScrapeBS4(self, url):
-
-        prospectInfo = {'url':url}
-
-        soup = self.getSoup(url)
-        outer = soup.select('section.contenttab')
-
-        for content in outer:
-            headers = content.select('div.box-content-heading')
-            texts = content.select('div.box-content-text')
-            for headers,text in zip(headers,texts):
-                prospectInfo[headers.text.strip()] = text.text.strip()
-
-        keyInfo = soup.select('section.avtal_info')
-        for keys in keyInfo:
-            try:
-                print(keys)
-                print('-'*80)
-            except:
-                continue
-            # for key in keys:
-            #     try:
-            #         print(key.text.strip())
-            #     except:
-            #         continue
-                # print(type(key))
-                # print('-'*80)
-
-        return prospectInfo
-
-    def prospectScrapeLxml(self,url):
-
-        rootXPath =\
-                '//*[@id="ctl00_ContentBody_ComponentLoader3_ctl00___propertyDetail_container"]/section[2]'
-        prospectInfo = {'url':url}
-        response = requests.get(url)
-        prospectPage = lxml.html.fromstring(response.content)
-
-        adress = prospectPage.xpath(rootXPath+'/p[1]/text()')
-        adress = adress[0].strip()+', '+adress[1].strip()
-        prospectInfo['adress'] = adress
-        
-        try:
-            price = {'prisantydning':prospectPage.xpath(rootXPath+'/p[4]/span')[0].text.strip()}
-        except:
-            try:
-                price = {'prisantydning':prospectPage.xpath(rootXPath+'/p[3]/span')[0].text.strip()}
-            except:
-                price = {}
-
-        for i in [7,8,9,10]:
-            try:
-                key = \
-                        prospectPage.xpath(rootXPath+'/p[{}]'.format(i))[0].text.strip()[:-1]
-                value = \
-                        prospectPage.xpath(rootXPath+'/p[{}]/span'.format(i))[0].text.strip()
-                price[key] = value
-            except:
-                continue
-        prospectInfo['price'] = price
-            
-
-        eiendomstype = prospectPage.xpath(rootXPath+'/section[2]/text()')
-        eiendomstypeDict = {}
-        for text in eiendomstype:
-            temp = text.strip().split(':')
-            try:
-                eiendomstypeDict[temp[0].strip()] = temp[1].strip()
-            except:
-                continue
-
-        try:
-            prospectInfo['eiendomstype'] = eiendomstypeDict
-            matrikkelinfo = prospectPage.xpath(rootXPath+'/section[4]/text()')
-            matrikkelDict = {}
-            for text in matrikkelinfo:
-                temp = text.strip().split(':')
-                try:
-                    matrikkelDict[temp[0].strip()] = temp[1].strip()
-                except:
-                    continue
-            prospectInfo['matrikkelinfo'] = matrikkelDict
-        except:
-            pass
-
-        try: 
-            fasiliteter = prospectPage.xpath(rootXPath+'/ul/li/text()')
-            fascilities = ''
-            for fasi in fasiliteter:
-                fascilities += fasi+' '
-            prospectInfo[fasiliteter] = fascilities
-        except:
-            pass
-        
-        self.writeInfo(prospectInfo)
-        
-    def findProspectUrls(self, url):
-
-        prospectUrls = []
-        soup = self.getSoup(url)
-        sections = soup.select('section.product')
-        for section in sections[0]:
-            try:
-                prospectUrls.append(self.rootUrl+section.a['href'])
-            except:
-                continue
-        return prospectUrls
-
-    def getSoup(self,url):
-
-        response = requests.get(url)
-        soup = bs4.BeautifulSoup(response.text,"lxml")
-        return soup
 
 
 
 
 if __name__=='__main__':
 
-    # rootUrl = 'https://www.eiendomsmegler1.no/bolig/kjoepe-bolig/boliger/'
-    # pageUrl = '?rows=25&sort=1&page=1&CATEGORY=homes&lat=&lon='
-    # houseUrl = 'bolig/?propertyid='
-    rootUrl = "http://notar.no"
-    startPageUrl = "/Avansert-sok.aspx?pagesize=27&tab=1"
-
-    notar = Scrape(rootUrl,startPageUrl)
+    notar = Scrape()
     notar()

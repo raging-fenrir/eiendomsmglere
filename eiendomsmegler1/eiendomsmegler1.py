@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,6 +17,7 @@ class Scrape:
         self.startUrl = 'https://www.eiendomsmegler1.no/bolig/kjoepe-bolig/'+\
                 'boliger/?rows=25&sort=1&page=1&CATEGORY=homes&lat=&lon='
         self.filename = str(time.time())
+        self.prospectCounter = 0
 
     def __call__(self):
         print("Starting virtual display")
@@ -56,11 +58,10 @@ class Scrape:
 
         prospectPage = webdriver.Firefox()
 
-        counter = 0
         for url in urls:
-            counter += 1
+            self.prospectCounter += 1
                 
-            print("Prospect #{}".format(counter))
+            print("Prospect #{}".format(self.prospectCounter))
 
             prospDict = {}
             url = self.rootUrl + url
