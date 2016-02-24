@@ -27,15 +27,28 @@ class eiendomsmegler1:
         while current < total:
             self.wait()
             current, total = self.getNumberOfPages()
+            currentUrl = self.firefox.current_url
 
             print("Page {} /  {}".format(current,total))
 
             prospectUrls = self.getProspectUrls()
             self.prospectScrape(prospectUrls)
 
-            self.nextPageMain()
+            
+            try:
+                self.firefox.get(currentUrl)
+                self.wait()
+                self.nextPage() 
+            except Exception as e:
+                print("Could not hit the button")
+                print(e)
+                pass
             time.sleep(5)
 
+    def nextPage(self):
+        
+        nextButton = self.firefox.find_element_by_link_text('Neste')
+        nextButton.click() 
 
     def prospectScrape(self, prospectUrls):
 
@@ -93,10 +106,6 @@ class eiendomsmegler1:
 
         return current, total
 
-    def nextPageMain(self):
-        
-        nextButton = self.firefox.find_element_by_link_text('Neste')
-        nextButton.click() 
 
     def getProspectUrls(self):
         
@@ -107,8 +116,9 @@ class eiendomsmegler1:
         try:
             WebDriverWait(self.firefox,10).until(\
                     EC.presence_of_all_elements_located((By.CLASS_NAME,'images-list')))
-        except:
+        except Exception as e:
             print("Timeout on wait")
+            print(e)
             pass
             
 

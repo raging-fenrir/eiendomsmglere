@@ -1,5 +1,5 @@
-#-*- coding: utf-8 -*-
 #!../bin/python
+#-*- coding: utf-8 -*-
 from pyvirtualdisplay import Display
 from selenium import webdriver
 import time
@@ -31,14 +31,14 @@ class Meglere:
 
 if __name__=='__main__':
 
-    meglere             = Meglere()
-    NotarInst           = Notar(meglere.path)
-    eiendomsmegler1Ins  = eiendomsmegler1(meglere.path)
+    meglere              = Meglere()
+    NotarInst            = Notar(meglere.path)
+    eiendomsmegler1Inst  = eiendomsmegler1(meglere.path)
 
-    print("Notar scrape starting...")
-    meglere(NotarInst)
     print("eiendomsmegler1 scrape starting...")
     meglere(eiendomsmegler1Inst)
+    print("Notar scrape starting...")
+    meglere(NotarInst)
 
     meglere.terminate()
 
