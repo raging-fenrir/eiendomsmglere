@@ -1,28 +1,20 @@
 # -*- coding: utf-8 -*-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from pyvirtualdisplay import Display
 import time
 
-class Scrape:
+class Notar:
 
-    def __init__(self):
-        self.filename   = str(time.time())
-        self.display    = Display(visible=0, size=(800,600))
+    def __init__(self, path):
+        self.filename   = path+'/Notar/data/'+str(time.time())
         self.rootUrl    = 'http://notar.no'
         self.startUrl   = 'http://notar.no/Avansert-sok.aspx?pagesize=27&tab=1'
         self.prospectCounter = 0
 
-    def __call__(self):
-        
-        print("Starting virtual display...")
-        self.display.start()
-        print("Starting browser...")
-        self.page = webdriver.Firefox()
-        print("Connecting to page...")
-        self.page.get(self.startUrl)
-        print("Connected")
-        print("Starting the scrape...")
+    def __call__(self,firefox):
+
+        self.firefox = firefox 
+        self.firefox.get(self.startUrl)
 
         currentUrl = self.startUrl
         current = 0
@@ -42,16 +34,12 @@ class Scrape:
             prospectUrls = self.getProspectUrls()
 
             self.prospectScrape(prospectUrls)
-            self.page.get(nextPage)
+            self.firefox.get(nextPage)
 
-        print("Terminating browser")
-        self.page.quit()
-        print("Terminating virtual display")
-        self.display.stop()
 
     def nextPage(self):
 
-        nextButton = self.page.find_element(By.LINK_TEXT,'Neste')
+        nextButton = self.firefox.find_element(By.LINK_TEXT,'Neste')
         
         return nextButton.get_attribute('href')
 
@@ -64,12 +52,12 @@ class Scrape:
 
             prospectDictionary['url'] = url
             print("Prospect #{}".format(self.prospectCounter))
-            self.page.get(url)
+            self.firefox.get(url)
 
-            time.sleep(5)
+            time.sleep(2)
 
             try:
-                prospectAvtal_Info = self.page.find_elements(By.CLASS_NAME,'avtal_info')
+                prospectAvtal_Info = self.firefox.find_elements(By.CLASS_NAME,'avtal_info')
                 for info in prospectAvtal_Info:
                     for element in info.text.split('\n'):
                         element = element.split(':')
@@ -79,22 +67,25 @@ class Scrape:
                             prospectDictionary[element[0]] = element[1]
 
             except Exception as e:
-                print(e)
+                print("prospectAvtal_info: \n",e)
+                pass
 
             try:
-                prospectFacilities = self.page.find_elements(By.CLASS_NAME,'lstfacilities')
+                prospectFacilities = self.firefox.find_elements(By.CLASS_NAME,'lstfacilities')
                 prospectDictionary['Facilities'] = prospectFacilities[0].text.split()
 
             except Exception as e:
-                print(e)
+                print("prospectFacilities: \n",e)
+                pass
 
             try:
-                priceEstimate = self.page.find_element(By.CLASS_NAME,'bigPris').text
+                priceEstimate = self.firefox.find_element(By.CLASS_NAME,'bigPris').text
             except Exception as e:
-                print(e)
+                print("priceEstimate: \n",e)
+                pass
 
             try:
-                alll = self.page.find_elements(By.CLASS_NAME,'right')
+                alll = self.firefox.find_elements(By.CLASS_NAME,'right')
                 check = False
                 adress = False
                 prospectDictionary['Adress'] = []
@@ -129,14 +120,15 @@ class Scrape:
                                 prospectDictionary[key] = value
         
             except Exception as e:
-                print(e)
+                print("alll: \n",e)
+                pass
 
             self.writeInfo(prospectDictionary)
 
     def getProspectUrls(self):
 
         urlElements =\
-                self.page.find_elements(By.XPATH,\
+                self.firefox.find_elements(By.XPATH,\
                 "//*[contains(@id,'ctl00_ContentLeft_ComponentLoader2_ctl01___rptProperty_')]")
         urls = [] 
         urlCounter = 0
@@ -154,7 +146,7 @@ class Scrape:
 
     def getNumberOfPages(self):
         
-        pageNumberText = self.page.find_element(By.CLASS_NAME,'textPage').text.split()
+        pageNumberText = self.firefox.find_element(By.CLASS_NAME,'textPage').text.split()
         current, total = int(pageNumberText[1]),int(pageNumberText[3])
         return current, total
 
@@ -166,10 +158,7 @@ class Scrape:
 
         outFile.close()
 
-
-
-
 if __name__=='__main__':
 
-    notar = Scrape()
+    notar = Notar()
     notar()
