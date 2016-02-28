@@ -43,7 +43,7 @@ class eiendomsmegler1:
                 print("Could not hit the button")
                 print(e)
                 pass
-            time.sleep(5)
+            time.sleep(2)
 
     def nextPage(self):
         
@@ -95,7 +95,7 @@ class eiendomsmegler1:
 
              
             self.writeInfo(prospDict)
-            time.sleep(2) 
+            time.sleep(1) 
 
 
     def getNumberOfPages(self):
