@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 
@@ -160,5 +159,15 @@ class Notar:
 
 if __name__=='__main__':
 
-    notar = Notar()
-    notar()
+    from selenium import webdriver
+    from pyvirtualdisplay import Display
+   
+    path = ".."
+    display = Display(visible=0, size=(800,600))
+    display.start()
+
+    firefox = webdriver.Firefox()
+
+    notar = Notar(path)
+    notar(firefox)
+

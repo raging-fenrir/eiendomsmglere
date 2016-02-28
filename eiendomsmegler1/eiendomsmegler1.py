@@ -133,6 +133,17 @@ class eiendomsmegler1:
 
 if __name__=='__main__':
     
+    from selenium import webdriver
+    from pyvirtualdisplay import Display
+   
+    path = ".."
+    display = Display(visible=0, size=(800,600))
+    display.start()
+
+    firefox = webdriver.Firefox()
     
-    eiendomsmegler1 = Scrape()
-    eiendomsmegler1()
+    eiendomsmegler1 = eiendomsmegler1(path)
+    eiendomsmegler1(firefox)
+
+    firefox.quit()
+    display.stop()

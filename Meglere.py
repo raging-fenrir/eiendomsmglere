@@ -35,10 +35,10 @@ if __name__=='__main__':
     NotarInst            = Notar(meglere.path)
     eiendomsmegler1Inst  = eiendomsmegler1(meglere.path)
 
-    print("eiendomsmegler1 scrape starting...")
-    meglere(eiendomsmegler1Inst)
     print("Notar scrape starting...")
     meglere(NotarInst)
+    print("eiendomsmegler1 scrape starting...")
+    meglere(eiendomsmegler1Inst)
 
     meglere.terminate()
 
