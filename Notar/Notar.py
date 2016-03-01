@@ -20,7 +20,7 @@ class Notar:
         total = 1
 
         while current < total:
-            time.sleep(5)
+            time.sleep(3)
             current, total = self.getNumberOfPages()    
             try:
                 nextPage = self.nextPage() 
@@ -53,7 +53,7 @@ class Notar:
             print("Prospect #{}".format(self.prospectCounter))
             self.firefox.get(url)
 
-            time.sleep(2)
+            time.sleep(1)
 
             try:
                 prospectAvtal_Info = self.firefox.find_elements(By.CLASS_NAME,'avtal_info')
