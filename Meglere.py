@@ -31,6 +31,10 @@ class Meglere:
 
 if __name__=='__main__':
 
+    #for i in range(5):
+
+        #print("Run #{}".format(i))
+
     meglere              = Meglere()
     NotarInst            = Notar(meglere.path)
     eiendomsmegler1Inst  = eiendomsmegler1(meglere.path)
@@ -42,3 +46,4 @@ if __name__=='__main__':
 
     meglere.terminate()
 
+        #time.sleep(86520)
